@@ -19,7 +19,7 @@ func CriarCliente(db *sql.DB, w http.ResponseWriter, r *http.Request) {
 	var cliente domain.Cliente
 
 	if err := json.NewDecoder(r.Body).Decode(&cliente); err != nil {
-		http.Error(w, "Erro ao decodificar JSON", http.StatusBadRequest)
+		RespondWithError(w, http.StatusBadRequest, "Erro ao decodificar JSON")
 		return
 	}
 
@@ -27,7 +27,7 @@ func CriarCliente(db *sql.DB, w http.ResponseWriter, r *http.Request) {
 	stmt, err := db.Prepare("INSERT INTO clientes (nome, telefone, data_cadastro) VALUES (?, ?, ?)")
 	if err != nil {
 		log.Printf("Erro ao preparar query: %v", err)
-		http.Error(w, "Erro interno", http.StatusInternalServerError)
+		RespondWithError(w, http.StatusInternalServerError, "Erro interno")
 		return
 	}
 	defer stmt.Close()
@@ -35,14 +35,14 @@ func CriarCliente(db *sql.DB, w http.ResponseWriter, r *http.Request) {
 	result, err := stmt.Exec(cliente.Nome, cliente.Telefone, cliente.DataCadastro)
 	if err != nil {
 		log.Printf("Erro ao executar query: %v", err)
-		http.Error(w, "Erro ao inserir cliente", http.StatusInternalServerError)
+		RespondWithError(w, http.StatusInternalServerError, "Erro ao inserir cliente")
 		return
 	}
 
 	cliente.ID, _ = result.LastInsertId()
-	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(cliente)
+	RespondCreated(w, cliente)
 }
+
 func BuscarClientes(db *sql.DB, w http.ResponseWriter, r *http.Request) {
 	// 1. Extrai parâmetros de busca e paginação do contexto e da URL
 	nome := r.URL.Query().Get("nome")
@@ -64,7 +64,7 @@ func BuscarClientes(db *sql.DB, w http.ResponseWriter, r *http.Request) {
 	// 3. Executa a query com tratamento de erro
 	rows, err := db.Query(baseSQL, args...)
 	if err != nil {
-		http.Error(w, "Erro ao buscar clientes", http.StatusInternalServerError)
+		RespondWithError(w, http.StatusInternalServerError, "Erro ao buscar clientes")
 		return
 	}
 	defer rows.Close()
@@ -74,54 +74,62 @@ func BuscarClientes(db *sql.DB, w http.ResponseWriter, r *http.Request) {
 	for rows.Next() {
 		var c domain.Cliente
 		if err := rows.Scan(&c.ID, &c.Nome, &c.Telefone, &c.DataCadastro); err != nil {
-			http.Error(w, "Erro ao ler resultados", http.StatusInternalServerError)
+			RespondWithError(w, http.StatusInternalServerError, "Erro ao ler resultados")
 			return
 		}
 		clientes = append(clientes, c)
 	}
 	if err = rows.Err(); err != nil {
-		http.Error(w, "Erro após varrer resultados", http.StatusInternalServerError)
+		RespondWithError(w, http.StatusInternalServerError, "Erro após varrer resultados")
 		return
 	}
 
 	// 5. Retorna JSON
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(clientes)
+	RespondOK(w, clientes)
 }
 
 func DeleteCliente(db *sql.DB, w http.ResponseWriter, r *http.Request) {
 	idParam := chi.URLParam(r, "id")
 	id, err := strconv.ParseInt(idParam, 10, 64)
 	if err != nil {
-		http.Error(w, "Erro ao converter id para numérico", http.StatusInternalServerError)
-		log.Printf("%v", err)
+		RespondWithError(w, http.StatusBadRequest, "ID inválido")
 		return
 	}
-	_, err = db.Exec("DELETE FROM clientes WHERE id = ?", id)
 
+	result, err := db.Exec("DELETE FROM clientes WHERE id = ?", id)
 	if err != nil {
-		log.Printf("Erro ao preparar query de delete: %v", err)
-		http.Error(w, "Erro interno", http.StatusInternalServerError)
+		log.Printf("Erro ao executar query de delete: %v", err)
+		RespondWithError(w, http.StatusInternalServerError, "Erro interno")
 		return
 	}
-	fmt.Printf("id: %d", id)
-	w.WriteHeader(http.StatusNoContent)
+
+	// Verifica se algum registro foi afetado
+	rows, _ := result.RowsAffected()
+	if rows == 0 {
+		RespondWithError(w, http.StatusNotFound, "Cliente não encontrado")
+		return
+	}
+
+	RespondNoContent(w)
 }
+
 func UpdateCliente(db *sql.DB, w http.ResponseWriter, r *http.Request) {
 	idParam := chi.URLParam(r, "id")
 	id, err := strconv.Atoi(idParam)
 	if err != nil {
-		http.Error(w, "Erro ao converter id para numérico", http.StatusInternalServerError)
-		log.Printf("%v", err)
+		RespondWithError(w, http.StatusBadRequest, "ID inválido")
+		return
 	}
+
 	var input struct {
 		Nome     *string `json:"nome"`
 		Telefone *string `json:"telefone"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
-		http.Error(w, "JSON inválido", http.StatusBadRequest)
+		RespondWithError(w, http.StatusBadRequest, "JSON inválido")
 		return
 	}
+
 	var sets []string
 	var args []any
 	if input.Nome != nil {
@@ -133,30 +141,31 @@ func UpdateCliente(db *sql.DB, w http.ResponseWriter, r *http.Request) {
 		args = append(args, *input.Telefone)
 	}
 	if len(sets) == 0 {
-		http.Error(w, "Nada para atualizar", http.StatusBadRequest)
+		RespondWithError(w, http.StatusBadRequest, "Nada para atualizar")
 		return
 	}
+
 	args = append(args, id)
 	query := fmt.Sprintf("UPDATE clientes SET %s WHERE id = ?", strings.Join(sets, ", "))
 	res, err := db.Exec(query, args...)
 	if err != nil {
-		http.Error(w, "Erro ao atualizar cliente", http.StatusInternalServerError)
+		RespondWithError(w, http.StatusInternalServerError, "Erro ao atualizar cliente")
 		return
 	}
+
 	rows, _ := res.RowsAffected()
 	if rows == 0 {
-		http.Error(w, "Cliente não encontrado", http.StatusNotFound)
+		RespondWithError(w, http.StatusNotFound, "Cliente não encontrado")
 		return
 	}
+
 	var updated domain.Cliente
 	err = db.QueryRow("SELECT id, nome, telefone, data_cadastro FROM clientes WHERE id = ?", id).
 		Scan(&updated.ID, &updated.Nome, &updated.Telefone, &updated.DataCadastro)
 	if err != nil {
-		http.Error(w, "Erro ao buscar cliente atualizado", http.StatusInternalServerError)
+		RespondWithError(w, http.StatusInternalServerError, "Erro ao buscar cliente atualizado")
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusNoContent)
-	json.NewEncoder(w).Encode(updated)
+	RespondOK(w, updated)
 }

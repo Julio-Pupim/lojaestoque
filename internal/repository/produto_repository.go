@@ -152,7 +152,7 @@ func (r *ProdutoRepository) Delete(id int64) error {
 func (r *ProdutoRepository) Update(p *models.Produto) error {
 	// assume que Validate foi chamada antes
 	_, err := r.db.Exec(
-		`UPDATE produtos SET nome = ?, codigo_barras = ?, quantidade_estoque = ?, preco = ?
+		`UPDATE produtos SET nome = ?, codigo_fornecedor = ?, quantidade_estoque = ?, preco = ?
 		 WHERE fornecedor_id = ? AND codigo_fornecedor = ?`,
 		p.Nome, p.CodigoFornecedor, p.QuantidadeEstoque, p.Preco, p.Fornecedor.Id, p.CodigoFornecedor,
 	)

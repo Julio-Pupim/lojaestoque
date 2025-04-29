@@ -24,10 +24,9 @@ func CreateOrAddProduto(pr *repository.ProdutoRepository) http.HandlerFunc {
 			CodigoFornecedor  string `json:"codigo_fornecedor"`
 			QuantidadeEstoque int64  `json:"quantidade_estoque"`
 			Preco             string `json:"preco"`
-			QtdMinima         int64  `json:"qtd_minima"`
 		}
 		if err := json.NewDecoder(r.Body).Decode(&dto); err != nil {
-			http.Error(w, "JSON inválido", http.StatusBadRequest)
+			RespondWithError(w, http.StatusBadRequest, "JSON inválido")
 			return
 		}
 
@@ -42,20 +41,18 @@ func CreateOrAddProduto(pr *repository.ProdutoRepository) http.HandlerFunc {
 			dto.Preco,
 		)
 		if err != nil {
-			http.Error(w, err.Error(), http.StatusBadRequest)
+			RespondWithError(w, http.StatusBadRequest, err.Error())
 			return
 		}
 
 		// Persiste
 		if err := pr.Save(p); err != nil {
-			http.Error(w, fmt.Sprintf("Erro ao salvar produto: %v", err), http.StatusInternalServerError)
+			RespondWithError(w, http.StatusInternalServerError, fmt.Sprintf("Erro ao salvar produto: %v", err))
 			return
 		}
 
 		// Retorna criado/atualizado
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusCreated)
-		json.NewEncoder(w).Encode(p)
+		RespondCreated(w, p)
 	}
 }
 
@@ -98,12 +95,11 @@ func SearchProdutos(pr *repository.ProdutoRepository) http.HandlerFunc {
 		// Consulta
 		prods, err := pr.Find(filters, limit, offset)
 		if err != nil {
-			http.Error(w, fmt.Sprintf("Erro na busca: %v", err), http.StatusInternalServerError)
+			RespondWithError(w, http.StatusInternalServerError, fmt.Sprintf("Erro na busca: %v", err))
 			return
 		}
 
-		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(prods)
+		RespondOK(w, prods)
 	}
 }
 
@@ -113,19 +109,19 @@ func DeleteProduto(pr *repository.ProdutoRepository) http.HandlerFunc {
 		idStr := chi.URLParam(r, "id")
 		id, err := strconv.ParseInt(idStr, 10, 64)
 		if err != nil {
-			http.Error(w, "ID inválido", http.StatusBadRequest)
+			RespondWithError(w, http.StatusBadRequest, "ID inválido")
 			return
 		}
 
 		if err := pr.Delete(id); errors.Is(err, sql.ErrNoRows) {
-			http.Error(w, "Produto não encontrado", http.StatusNotFound)
+			RespondWithError(w, http.StatusNotFound, "Produto não encontrado")
 			return
 		} else if err != nil {
-			http.Error(w, fmt.Sprintf("Erro ao deletar: %v", err), http.StatusInternalServerError)
+			RespondWithError(w, http.StatusInternalServerError, fmt.Sprintf("Erro ao deletar: %v", err))
 			return
 		}
 
-		w.WriteHeader(http.StatusNoContent)
+		RespondNoContent(w)
 	}
 }
 
@@ -135,51 +131,67 @@ func UpdateProduto(pr *repository.ProdutoRepository) http.HandlerFunc {
 		idStr := chi.URLParam(r, "id")
 		id, err := strconv.ParseInt(idStr, 10, 64)
 		if err != nil {
-			http.Error(w, "ID inválido", http.StatusBadRequest)
+			RespondWithError(w, http.StatusBadRequest, "ID inválido")
 			return
 		}
 
 		// Decodifica body no DTO
 		var dto struct {
 			Nome              *string `json:"nome"`
-			CodigoBarras      *string `json:"codigo_barras"`
+			CodigoFornecedor  *string `json:"codigo_fornecedor"`
 			QuantidadeEstoque *int64  `json:"quantidade_estoque"`
 			Preco             *string `json:"preco"`
-			QtdMinima         *int64  `json:"qtd_minima"`
 		}
 		if err := json.NewDecoder(r.Body).Decode(&dto); err != nil {
-			http.Error(w, "JSON inválido", http.StatusBadRequest)
+			RespondWithError(w, http.StatusBadRequest, "JSON inválido")
 			return
 		}
 
-		// Busca o produto atual para preencher campos não enviados
-		produtos, err := pr.Find(nil, 1, int(id)) // ou um método GetByID
+		// Busca o produto atual para atualizar
+		produtos, err := pr.Find(map[string]any{"id": id}, 1, 0)
 		if err != nil || len(produtos) == 0 {
-			http.Error(w, "Produto não encontrado", http.StatusNotFound)
+			RespondWithError(w, http.StatusNotFound, "Produto não encontrado")
 			return
 		}
 		p := &produtos[0]
 
 		// Aplica mudanças
 		if dto.Nome != nil {
-			p.SetNome(*dto.Nome)
+			if err := p.SetNome(*dto.Nome); err != nil {
+				RespondWithError(w, http.StatusBadRequest, err.Error())
+				return
+			}
+		}
+
+		if dto.CodigoFornecedor != nil {
+			p.CodigoFornecedor = *dto.CodigoFornecedor
 		}
 
 		if dto.QuantidadeEstoque != nil {
-			p.SetQuantidadeEstoque(*dto.QuantidadeEstoque)
-		}
-		if dto.Preco != nil {
-			p.SetPreco(*dto.Preco)
+			if err := p.SetQuantidadeEstoque(*dto.QuantidadeEstoque); err != nil {
+				RespondWithError(w, http.StatusBadRequest, err.Error())
+				return
+			}
 		}
 
-		// Persiste update
-		if err := pr.Update(p); err != nil {
-			http.Error(w, fmt.Sprintf("Erro ao atualizar: %v", err), http.StatusInternalServerError)
+		if dto.Preco != nil {
+			if err := p.SetPreco(*dto.Preco); err != nil {
+				RespondWithError(w, http.StatusBadRequest, err.Error())
+				return
+			}
+		}
+
+		// Valida e persiste update
+		if err := p.ValidateAndUpdate(); err != nil {
+			RespondWithError(w, http.StatusBadRequest, err.Error())
 			return
 		}
 
-		// Retorna o objeto atualizado
-		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(p)
+		if err := pr.Update(p); err != nil {
+			RespondWithError(w, http.StatusInternalServerError, fmt.Sprintf("Erro ao atualizar: %v", err))
+			return
+		}
+
+		RespondOK(w, p)
 	}
 }
