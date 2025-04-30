@@ -15,7 +15,7 @@ const (
 type Sale struct {
 	ID            int64         `json:"id"`
 	ClientID      int64         `json:"cliente_id"`
-	CreatedAt     time.Time     `json:"data"`
+	DataVenda     time.Time     `json:"data"`
 	Total         Decimal       `json:"total"`
 	PaymentDate   *time.Time    `json:"data_pagamento,omitempty"`
 	PaymentStatus PaymentStatus `json:"status_pagamento"`

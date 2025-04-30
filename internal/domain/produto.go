@@ -5,7 +5,6 @@ import (
 	"fmt"
 )
 
-// Produto representa um produto no sistema
 type Produto struct {
 	ID                int64      `json:"id"`
 	Nome              string     `json:"nome"`
@@ -15,16 +14,14 @@ type Produto struct {
 	Preco             Decimal    `json:"preco"`
 }
 
-// NewProduto cria uma nova instância de Produto com validação
 func NewProduto(
 	id int64,
 	nome string,
 	fornecedor Fornecedor,
 	codigoFornecedor string,
 	quantidadeEstoque int64,
-	precoStr string, // recebemos o preço como string
+	precoStr string,
 ) (*Produto, error) {
-	// Utilizando o wrapper Decimal
 	var dec Decimal
 	if err := dec.UnmarshalJSON([]byte(fmt.Sprintf(`"%s"`, precoStr))); err != nil {
 		return nil, fmt.Errorf("preço inválido: %w", err)
@@ -44,7 +41,6 @@ func NewProduto(
 	return p, nil
 }
 
-// Validate valida os dados do produto
 func (p *Produto) Validate() error {
 	if p.Nome == "" {
 		return errors.New("nome não pode ser vazio")
@@ -64,7 +60,6 @@ func (p *Produto) Validate() error {
 	return nil
 }
 
-// SetNome altera o nome do produto com validação
 func (p *Produto) SetNome(nome string) error {
 	if nome == "" {
 		return errors.New("nome do produto não pode ser vazio")
@@ -73,7 +68,6 @@ func (p *Produto) SetNome(nome string) error {
 	return nil
 }
 
-// SetQuantidadeEstoque altera a quantidade em estoque com validação
 func (p *Produto) SetQuantidadeEstoque(quantidade int64) error {
 	if quantidade < 0 {
 		return errors.New("quantidade em estoque não pode ser negativa")

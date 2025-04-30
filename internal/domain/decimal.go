@@ -9,12 +9,10 @@ import (
 	"github.com/cockroachdb/apd/v3"
 )
 
-// Decimal é um wrapper para apd.Decimal para implementar JSON marshaling/unmarshaling
 type Decimal struct {
 	*apd.Decimal
 }
 
-// MarshalJSON implementa a interface json.Marshaler para o tipo Decimal
 func (d Decimal) MarshalJSON() ([]byte, error) {
 	if d.Decimal == nil {
 		return []byte("null"), nil
@@ -22,7 +20,6 @@ func (d Decimal) MarshalJSON() ([]byte, error) {
 	return []byte(fmt.Sprintf("\"%s\"", d.Decimal)), nil
 }
 
-// UnmarshalJSON implementa a interface json.Unmarshaler para o tipo Decimal
 func (d *Decimal) UnmarshalJSON(data []byte) error {
 	if string(data) == "null" {
 		d.Decimal = nil
@@ -31,7 +28,6 @@ func (d *Decimal) UnmarshalJSON(data []byte) error {
 
 	var s string
 	if err := json.Unmarshal(data, &s); err != nil {
-		// Tenta desserializar como número se não for string
 		var f float64
 		if err := json.Unmarshal(data, &f); err != nil {
 			return err
@@ -49,7 +45,6 @@ func (d *Decimal) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
-// Value implementa a interface driver.Valuer para o tipo Decimal
 func (d Decimal) Value() (driver.Value, error) {
 	if d.Decimal == nil {
 		return nil, nil
@@ -57,7 +52,6 @@ func (d Decimal) Value() (driver.Value, error) {
 	return d.Decimal.String(), nil
 }
 
-// Scan implementa a interface sql.Scanner para o tipo Decimal
 func (d *Decimal) Scan(value interface{}) error {
 	if value == nil {
 		d.Decimal = nil
