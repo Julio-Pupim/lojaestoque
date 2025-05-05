@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <title id="page-title">Novo Cliente</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+</head>
+
+<body>
+
+    <div id="sidebar"></div>
+
+    <div class="content">
+        <h1 id="form-title">Novo Cliente</h1>
+
+        <form id="clienteForm" style="max-width: 500px;">
+
+            <div class="form-group">
+                <label for="nome">Nome</label>
+                <input type="text" id="nome" name="nome" required>
+            </div>
+
+            <div class="form-group">
+                <label for="telefone">Telefone</label>
+                <input type="tel" id="telefone" name="telefone" required placeholder="(11) 91234-5678">
+            </div>
+
+            <div style="margin-top: 16px;">
+                <button type="submit" id="submitBtn">Cadastrar</button>
+                <button type="button" onclick="window.history.back()" style="margin-left: 8px; background-color: gray;">
+                    Voltar
+                </button>
+            </div>
+
+            <p class="success" id="successMsg" style="color: green; margin-top: 12px; display: none;">
+                Cliente salvo com sucesso!
+            </p>
+        </form>
+    </div>
+
+    <!-- Primeiro carrega a API e depois o script de form -->
+    <script src="/js/api.js"></script>
+    <script>
+        // Carrega a sidebar
+        fetch('/partials/sidebar.html')
+            .then(r => r.text())
+            .then(html => document.getElementById('sidebar').innerHTML = html)
+            .catch(() => {
+                document.getElementById('sidebar').innerHTML = '<p>Menu não disponível</p>';
+            });
+
+        // Identifica se estamos em edição
+        const params = new URLSearchParams(window.location.search);
+        const clienteId = params.get('id');
+        const form = document.getElementById('clienteForm');
+        const title = document.getElementById('form-title');
+        const pageTitle = document.getElementById('page-title');
+        const submitBtn = document.getElementById('submitBtn');
+        const successMsg = document.getElementById('successMsg');
+
+        // Se tiver ID, busca o cliente e preenche o form
+        if (clienteId) {
+            title.textContent = 'Editar Cliente';
+            pageTitle.textContent = 'Editar Cliente';
+            submitBtn.textContent = 'Salvar';
+
+            fetchClienteById(clienteId)
+                .then(c => {
+                    document.getElementById('nome').value = c.nome;
+                    document.getElementById('telefone').value = c.telefone;
+                })
+                .catch(err => {
+                    console.error('Erro ao carregar cliente:', err);
+                    alert('Não foi possível carregar os dados do cliente para edição.');
+                });
+        }
+
+        form.addEventListener('submit', async function (event) {
+            event.preventDefault();
+
+            const nome = document.getElementById('nome').value.trim();
+            const telefone = document.getElementById('telefone').value.trim();
+            if (!nome || !telefone) {
+                alert('Preencha todos os campos.');
+                return;
+            }
+
+            try {
+                if (clienteId) {
+                    // Edição
+                    await updateCliente(clienteId, { nome, telefone });
+                } else {
+                    // Criação
+                    await createCliente({ nome, telefone });
+                }
+
+                successMsg.style.display = 'block';
+                setTimeout(() => window.history.back(), 1000);
+
+            } catch (err) {
+                console.error('Erro ao salvar cliente:', err);
+                alert('Erro ao salvar cliente. Verifique o console.');
+            }
+        });
+    </script>
+
+</body>
+
+</html>

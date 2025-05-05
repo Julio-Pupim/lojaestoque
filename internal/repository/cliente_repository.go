@@ -2,6 +2,7 @@ package repository
 
 import (
 	"database/sql"
+	"fmt"
 	"strings"
 
 	"github.com/julio-pupim/lojaestoque/internal/domain"
@@ -46,7 +47,8 @@ func (cr *ClienteRepository) BuscarClientes(filters map[string]any, limit, offse
 			id                           int64
 			nome, telefone, dataCadastro string
 		)
-		if err := rows.Scan(id, nome, telefone, dataCadastro); err != nil {
+		if err := rows.Scan(&id, &nome, &telefone, &dataCadastro); err != nil {
+			fmt.Print(err)
 			return nil, err
 		}
 		clientes = append(clientes, domain.Cliente{ID: id, Nome: nome, Telefone: telefone, DataCadastro: dataCadastro})
@@ -56,7 +58,7 @@ func (cr *ClienteRepository) BuscarClientes(filters map[string]any, limit, offse
 }
 
 func (cr *ClienteRepository) SalvarCliente(c *domain.Cliente) (sql.Result, error) {
-	result, err := cr.db.Exec("INSERT INTO clientes (nome, telefone, dataCadastro) VALUES (?,?,?)",
+	result, err := cr.db.Exec("INSERT INTO clientes (nome, telefone, data_cadastro) VALUES (?,?,?)",
 		c.Nome, c.Telefone, c.DataCadastro)
 	if err != nil {
 		return nil, err

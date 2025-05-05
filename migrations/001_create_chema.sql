@@ -67,6 +67,7 @@ CREATE TABLE IF NOT EXISTS vendas_produtos (
     produto_id INTEGER NOT NULL,
     quantidade INTEGER NOT NULL,
     preco_unitario REAL NOT NULL,
+    total REAL NOT NULL,
     PRIMARY KEY(venda_id, produto_id),
     FOREIGN KEY(venda_id) REFERENCES vendas(id),
     FOREIGN KEY(produto_id) REFERENCES produtos(id)

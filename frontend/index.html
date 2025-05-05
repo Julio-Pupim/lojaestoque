@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Clientes</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+
+<body>
+    <div id="sidebar"></div>
+    <div class="content">
+        <h1>Clientes</h1>
+        <div class="toolbar">
+            <input type="text" id="searchInput" placeholder="Pesquisar por nome ou telefone">
+            <button id="newBtn">Novo Cliente</button>
+        </div>
+        <table id="clientesTable">
+            <thead>
+                <tr>
+                    <th>Nome</th>
+                    <th>Telefone</th>
+                    <th>Ações</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td colspan="3">Carregando...</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+    <script src="/js/api.js"></script>
+    <script src="/js/cliente.js"></script>
+</body>
+
+</html>
