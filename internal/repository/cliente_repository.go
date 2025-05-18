@@ -76,16 +76,20 @@ func (cr *ClienteRepository) DeletarCliente(id int64) error {
 
 func (cr *ClienteRepository) BuscarClientePorId(id int64) (domain.Cliente, error) {
 	row := cr.db.QueryRow("SELECT * FROM clientes WHERE id = ? ", id)
+	fmt.Printf("\n%v\n", id)
 	if row.Err() != nil {
+		fmt.Printf("\n Aqui:%v\n", row.Err().Error())
 		return domain.Cliente{}, row.Err()
 	}
 	var (
 		nome, telefone, dataCadastro string
 	)
-	err := row.Scan(nome, telefone, dataCadastro)
+	err := row.Scan(&id, &nome, &telefone, &dataCadastro)
 	if err != nil {
+		fmt.Printf("\n Ou aqui:%v\n", err)
 		return domain.Cliente{}, err
 	}
+	fmt.Print(id)
 	return domain.Cliente{ID: id, Nome: nome, Telefone: telefone, DataCadastro: dataCadastro}, nil
 }
 

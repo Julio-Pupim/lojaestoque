@@ -1,19 +1,4 @@
-/*const API_BASE = 'http://localhost:8080';
-
-// Busca todos os clientes
-async function fetchClientes() {
-    const res = await fetch(`${API_BASE}/clientes`);
-    return await res.json();
-}
-
-// Deleta um cliente pelo ID
-async function deleteCliente(id) {
-    await fetch(`${API_BASE}/clientes/${id}`, { method: 'DELETE' });
-}
-*/
-
-// Configuração da URL base da API
-const API_BASE = 'http://localhost:8080'; // Certifique-se que esta porta corresponde à do seu servidor
+const API_BASE = 'http://localhost:8080';
 
 // Função para tratar erros nas requisições fetch
 async function fetchWithErrorHandling(url, options = {}) {

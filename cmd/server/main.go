@@ -43,6 +43,7 @@ func main() {
 		r.With(myMiddleware.Pagination).Get("/", handler.BuscarClientes(cr))
 		r.Delete("/{id}", handler.DeleteCliente(cr))
 		r.Patch("/{id}", handler.UpdateCliente(cr))
+		r.Get("/{id}", handler.GetClienteById(cr))
 	})
 	r.Route("/produtos", func(r chi.Router) {
 		pr := repository.NewProdutoRepository(db)

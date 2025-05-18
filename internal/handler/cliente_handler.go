@@ -105,3 +105,21 @@ func UpdateCliente(cr *repository.ClienteRepository) http.HandlerFunc {
 
 	}
 }
+
+func GetClienteById(cr *repository.ClienteRepository) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		idParam := chi.URLParam(r, "id")
+		id, err := strconv.ParseInt(idParam, 10, 64)
+
+		if err != nil {
+			RespondWithError(w, http.StatusBadRequest, "ID inválido")
+			return
+		}
+
+		cliente, err := cr.BuscarClientePorId(id)
+		if err != nil {
+			RespondWithError(w, http.StatusInternalServerError, "Erro ao executar busca de cliente por id")
+		}
+		RespondOK(w, cliente)
+	}
+}

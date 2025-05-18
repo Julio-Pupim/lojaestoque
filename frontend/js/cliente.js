@@ -31,14 +31,14 @@ function renderTable(data) {
         return;
     }
 
-    data.forEach(c => {
+    data.forEach(cliente => {
         const tr = document.createElement('tr');
         tr.innerHTML = `
-      <td>${c.nome}</td>
-      <td>${c.telefone}</td>
+      <td>${cliente.nome}</td>
+      <td>${cliente.telefone}</td>
       <td>
-        <button class="action-btn edit-btn" data-id="${c.id}">Editar</button>
-        <button class="action-btn delete-btn" data-id="${c.id}">Deletar</button>
+        <button class="action-btn edit-btn" data-id="${cliente.id}">Editar</button>
+        <button class="action-btn delete-btn" data-id="${cliente.id}">Deletar</button>
       </td>`;
         tbody.appendChild(tr);
     });
@@ -49,7 +49,9 @@ function renderTable(data) {
 function attachEventListeners() {
     document.querySelectorAll('.edit-btn').forEach(btn => {
         btn.addEventListener('click', () => {
-            window.location.href = `/partials/cliente_form.html?id=${btn.dataset.id}`;
+            const params = new URLSearchParams(window.location.search)
+            params.set("id", btn.dataset.id)
+            window.location.href = `/partials/cliente_form.html?${params.toString()}`;
         });
     });
     document.querySelectorAll('.delete-btn').forEach(btn => {
